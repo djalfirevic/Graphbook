@@ -1,4 +1,7 @@
 const typeDefinitions = `
+  directive @auth on QUERY | FIELD_DEFINITION | FIELD
+  scalar Upload
+
   type User {
     id: Int
     avatar: String
@@ -29,6 +32,11 @@ const typeDefinitions = `
     posts: [Post]
   }
 
+  type File {
+    filename: String!
+    url: String!
+  }
+
   input PostInput {
     text: String!
   }
@@ -54,6 +62,10 @@ const typeDefinitions = `
   type UsersSearch {
     users: [User]
   }
+
+  type Auth {
+    token: String
+  }
   
   type RootMutation {
     addPost (
@@ -72,14 +84,27 @@ const typeDefinitions = `
     deletePost (
       postId: Int!
     ): Response
+    login (
+      email: String!
+      password: String!
+    ): Auth
+    signup (
+      username: String!
+      email: String!
+      password: String!
+    ): Auth
+    uploadAvatar (
+      file: Upload!
+    ): File @auth
   }
 
   type RootQuery {
     posts: [Post]
     chats: [Chat]
     chat(chatId: Int): Chat
-    postsFeed(page: Int, limit: Int): PostFeed
+    postsFeed(page: Int, limit: Int): PostFeed @auth
     usersSearch(page: Int, limit: Int, text: String!): UsersSearch
+    currentUser: User @auth
   }
 
   schema {

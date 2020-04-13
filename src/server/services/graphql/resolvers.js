@@ -1,7 +1,15 @@
 import logger from'../../helpers/logger';
 import Sequelize from 'sequelize';
+import bcrypt from 'bcrypt';
+import JWT from 'jsonwebtoken';
+import aws from 'aws-sdk';
 
+const s3 = new aws.S3({
+  signatureVersion: 'v4',
+  region: 'eu-central-1',
+});
 const Op = Sequelize.Op;
+const { JWT_SECRET } = process.env;
 
 export default function resolver() {
     const { db } = this;
@@ -36,6 +44,9 @@ export default function resolver() {
             },
         },
         RootQuery: {
+            currentUser(root, args, context) {
+                return context.user;
+            },
             posts(root, args, context) {
                 return Post.findAll({order: [['createdAt', 'DESC']]});
             },
@@ -51,23 +62,15 @@ export default function resolver() {
                 });
             },
             chats(root, args, context) {
-                return User.findAll().then((users) => {
-                    if (!users.length) {
-                        return [];
-                    }
-                
-                    const usersRow = users[0];
-                
-                    return Chat.findAll({
-                        include: [{
-                            model: User,
-                            required: true,
-                            through: { where: { userId: usersRow.id } },
-                        },
-                        {
-                            model: Message,
-                        }],
-                    });
+                return Chat.findAll({
+                    include: [{
+                        model: User,
+                        required: true,
+                        through: { where: { userId: context.user.id } },
+                    },
+                    {
+                        model: Message,
+                    }],
                 });
             },
             postsFeed(root, { page, limit }, context) {
@@ -156,19 +159,15 @@ export default function resolver() {
                     level: 'info',
                     message: 'Message was created',
                 });
-               
-                return User.findAll().then((users) => {
-                    const usersRow = users[0];
-                
-                    return Message.create({
-                        ...message,
-                    }).then((newMessage) => {
-                        return Promise.all([
-                            newMessage.setUser(usersRow.id),
-                            newMessage.setChat(message.chatId),
-                        ]).then(() => {
-                            return newMessage;
-                        });
+                return Message.create({
+                    ...message,
+                }).then((newMessage) => {
+                    return Promise.all([
+                        newMessage.setUser(context.user.id),
+                        newMessage.setChat(message.chatId),
+                    ]).then(() => {
+                        pubsub.publish('messageAdded', {messageAdded: newMessage});
+                        return newMessage;
                     });
                 });
             },
@@ -214,6 +213,85 @@ export default function resolver() {
                         level: 'error',
                         message: err.message,
                     });
+                });
+            },
+            login(root, { email, password }, context) {
+                return User.findAll({
+                  where: {
+                    email
+                  },
+                  raw: true
+                }).then(async (users) => {
+                    if(users.length = 1) {
+                        const user = users[0];
+                        const passwordValid = await bcrypt.compare(password, user.password);
+                        if (!passwordValid) {
+                            throw new Error('Password does not match');
+                        }
+                        const token = JWT.sign({ email, id: user.id }, JWT_SECRET, {
+                            expiresIn: '1d'
+                        });
+                
+                        return {
+                            token
+                        };
+                    } else {
+                        throw new Error("User not found");
+                    }
+                });
+            },
+            signup(root, { email, password, username }, context) {
+                return User.findAll({
+                  where: {
+                    [Op.or]: [{email}, {username}]
+                  },
+                  raw: true,
+                }).then(async (users) => {
+                    if(users.length) {
+                        throw new Error('User already exists');
+                    } else {
+                        return bcrypt.hash(password, 10).then((hash) => {
+                            return User.create({
+                                email,
+                                password: hash,
+                                username,
+                                activated: 1,
+                            }).then((newUser) => {
+                                const token = JWT.sign({ email, id: newUser.id }, JWT_SECRET, {
+                                    expiresIn: '1d'
+                                });
+                                return {
+                                    token
+                                };
+                            });
+                        });
+                    }
+                });
+            },
+            async uploadAvatar(root, { file }, context) {
+                const { stream, filename, mimetype, encoding } = await file;
+                const bucket = 'apollobook';
+                const params = {
+                    Bucket: bucket,
+                    Key: context.user.id + '/' + filename,
+                    ACL: 'public-read',
+                    Body: stream
+                };
+                
+                const response = await s3.upload(params).promise();
+              
+                return User.update({
+                    avatar: response.Location
+                },
+                {
+                    where: {
+                        id: context.user.id
+                    }
+                }).then(() => {
+                    return {
+                        filename: filename,
+                        url: response.Location
+                    }
                 });
             },
         }

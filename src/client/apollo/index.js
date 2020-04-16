@@ -25,7 +25,7 @@ const client = new ApolloClient({
         graphQLErrors.map(({ message, locations, path, extensions }) => {
           if(extensions.code === 'UNAUTHENTICATED') {
             localStorage.removeItem('jwt');
-            client.resetStore()
+            client.resetStore();
           }
           console.log(`[GraphQL error]: Message: ${message}, Location: ${locations}, Path: ${path}`);
         });
@@ -40,7 +40,7 @@ const client = new ApolloClient({
       credentials: 'same-origin',
     }),
   ]),
-  cache: new InMemoryCache(),
+  cache: new InMemoryCache().restore(window.__APOLLO_STATE__)
 });
 
 export default client;

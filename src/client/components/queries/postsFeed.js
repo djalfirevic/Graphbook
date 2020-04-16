@@ -5,8 +5,8 @@ import Error from '../error';
 import gql from "graphql-tag";
 
 const GET_POSTS = gql`
-  query postsFeed($page: Int, $limit: Int) { 
-    postsFeed(page: $page, limit: $limit) { 
+  query postsFeed($page: Int, $limit: Int, $username: String) { 
+    postsFeed(page: $page, limit: $limit, username: $username) { 
       posts {
         id
         text
@@ -34,6 +34,10 @@ export default class PostsFeedQuery extends Component {
           if (typeof variables.limit !== typeof undefined) {
             query_variables.limit = variables.limit;
           }
+        }
+
+        if(typeof variables.username !== typeof undefined) {
+          query_variables.username = variables.username;
         }
 
         return query_variables;

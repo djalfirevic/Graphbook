@@ -7,34 +7,36 @@ module.exports = {
     mode: 'development',
     entry: './src/client/index.js',
     output: {
-        path: path.join(__dirname, outputDirectory),
-        filename: 'bundle.js'
+      path: path.join(__dirname, buildDirectory),
+      filename: 'bundle.js',
+      publicPath: '/',
     },
     module: {
-        rules: [
-          {
-            test: /\.js$/,
-            exclude: /node_modules/,
-            use: {
-              loader: 'babel-loader'
-            }
-          },
-          {
-            test: /\.css$/,
-            use: ['style-loader', 'css-loader']
+      rules: [
+        {
+          test: /\.js$/,
+          exclude: /node_modules/,
+          use: {
+            loader: 'babel-loader'
           }
-       ]
+        },
+        {
+          test: /\.css$/,
+          use: ['style-loader', 'css-loader']
+        }
+      ]
     }, 
     devServer: {
-        port: 3000,
-        open: true
+      port: 3000,
+      open: true,
+      historyApiFallback: true,
     },
     plugins: [
-        new CleanWebpackPlugin({
-          cleanOnceBeforeBuildPatterns: [path.join(__dirname, buildDirectory)]
-        }),
-        new HtmlWebpackPlugin({
-          template: './public/index.html'
-        })
+      new CleanWebpackPlugin({
+        cleanOnceBeforeBuildPatterns: [path.join(__dirname, buildDirectory)]
+      }),
+      new HtmlWebpackPlugin({
+        template: './public/index.html'
+      })
     ]
 };

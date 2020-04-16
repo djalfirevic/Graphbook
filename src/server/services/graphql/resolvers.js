@@ -73,7 +73,7 @@ export default function resolver() {
                     }],
                 });
             },
-            postsFeed(root, { page, limit }, context) {
+            postsFeed(root, { page, limit, username }, context) {
                 var skip = 0;
               
                 if(page && limit) {
@@ -88,10 +88,22 @@ export default function resolver() {
                 if(limit) {
                     query.limit = limit;
                 }
+
+                if(typeof username !== typeof undefined) {
+                    query.include = [{model: User}];
+                    query.where = { '$User.username$': username };
+                }
               
                 return {
                     posts: Post.findAll(query)
                 };
+            },
+            user(root, { username }, context) {
+                return User.findOne({
+                    where: {
+                        username: username
+                    }
+                });
             },
             usersSearch(root, { page, limit, text }, context) {
                 if(text.length < 3) {
@@ -231,6 +243,15 @@ export default function resolver() {
                         const token = JWT.sign({ email, id: user.id }, JWT_SECRET, {
                             expiresIn: '1d'
                         });
+                        const cookieExpiration = 1;
+                        var expirationDate = new Date(); 
+                        expirationDate.setDate(
+                            expirationDate.getDate() + cookieExpiration
+                        );
+                        context.cookies.set(
+                            'authorization',
+                            token, { signed: true, expires: expirationDate, httpOnly: true, secure: false, sameSite: 'strict' }
+                        );
                 
                         return {
                             token
@@ -260,6 +281,16 @@ export default function resolver() {
                                 const token = JWT.sign({ email, id: newUser.id }, JWT_SECRET, {
                                     expiresIn: '1d'
                                 });
+                                const cookieExpiration = 1;
+                                var expirationDate = new Date(); 
+                                expirationDate.setDate(
+                                    expirationDate.getDate() + cookieExpiration
+                                );
+                                context.cookies.set(
+                                    'authorization',
+                                    token, { signed: true, expires: expirationDate, httpOnly: true, secure: false, sameSite: 'strict' }
+                                );
+
                                 return {
                                     token
                                 };
@@ -293,6 +324,16 @@ export default function resolver() {
                         url: response.Location
                     }
                 });
+            },
+            logout(root, params, context) {
+                context.cookies.set(
+                    'authorization',
+                    '', { signed: true, expires: new Date(), httpOnly: true, secure: 
+                    false, sameSite: 'strict' }
+                );
+                return {
+                    message: true
+                };
             },
         }
     };

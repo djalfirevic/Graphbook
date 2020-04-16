@@ -6,6 +6,7 @@ const typeDefinitions = `
     id: Int
     avatar: String
     username: String
+    email: String
   }
 
   type Post {
@@ -96,13 +97,15 @@ const typeDefinitions = `
     uploadAvatar (
       file: Upload!
     ): File @auth
+    logout: Response @auth
   }
 
   type RootQuery {
     posts: [Post]
     chats: [Chat]
     chat(chatId: Int): Chat
-    postsFeed(page: Int, limit: Int): PostFeed @auth
+    postsFeed(page: Int, limit: Int, username: String): PostFeed @auth
+    user(username: String!): User @auth
     usersSearch(page: Int, limit: Int, text: String!): UsersSearch
     currentUser: User @auth
   }

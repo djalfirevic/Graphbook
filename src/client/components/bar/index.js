@@ -3,6 +3,8 @@ import SearchBar from './search';
 import UserBar from './user';
 import { UserConsumer } from '../context/user';
 import Logout from './logout';
+import Home from './home';
+import LogoutMutation from '../mutations/logout';
 
 export default class Bar extends Component {
     render() {
@@ -15,7 +17,8 @@ export default class Bar extends Component {
                     </UserConsumer>
                 </div>
                 <div className="buttons">
-                    <Logout />
+                    <Home/>
+                    <LogoutMutation><Logout changeLoginState={this.props.changeLoginState}/></LogoutMutation>
                 </div>
             </div>
         );

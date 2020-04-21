@@ -3,7 +3,8 @@ import Sequelize from 'sequelize';
 import bcrypt from 'bcrypt';
 import JWT from 'jsonwebtoken';
 import aws from 'aws-sdk';
-
+import { PubSub, withFilter } from 'graphql-subscriptions';
+const pubsub = new PubSub();
 const s3 = new aws.S3({
   signatureVersion: 'v4',
   region: 'eu-central-1',
@@ -170,7 +171,7 @@ export default function resolver() {
                 logger.log({
                     level: 'info',
                     message: 'Message was created',
-                });
+                  });
                 return Message.create({
                     ...message,
                 }).then((newMessage) => {
@@ -335,7 +336,31 @@ export default function resolver() {
                     message: true
                 };
             },
-        }
+        },
+        RootSubscription: {
+            messageAdded: {
+                subscribe: withFilter(() => pubsub.asyncIterator('messageAdded'), (payload, variables, context) => {
+                    if (payload.messageAdded.UserId != context.user.id) {
+                        return Chat.findOne({
+                            where: {
+                                id: payload.messageAdded.ChatId
+                            },
+                            include: [{
+                                model: User,
+                                required: true,
+                                through: { where: { userId: context.user.id } },
+                            }],
+                        }).then((chat) => {
+                            if(chat !== null) {
+                                return true;
+                            }
+                            return false;
+                        })
+                    }
+                    return false;
+                }),
+            }
+        },
     };
 
     return resolvers;

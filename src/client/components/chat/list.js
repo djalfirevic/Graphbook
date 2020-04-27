@@ -95,7 +95,7 @@ class ChatsList extends Component {
         return text; 
     }
     render() {
-    const { chats } = this.props;
+        const { chats } = this.props;
         return (
             <div className="chats">
                 {chats.map((chat, i) => 

@@ -99,3 +99,5 @@ app.get('*', async (req, res) => {
         }
     });
 });
+
+export default server;

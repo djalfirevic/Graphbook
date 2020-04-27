@@ -6,6 +6,7 @@ module.exports = {
     "host": "192.168.2.106",
     "dialect": "mysql",
     "operatorsAliases": false,
+    "logging": false,
     "pool": {
       "max": 5,
       "min": 0,
@@ -22,10 +23,10 @@ module.exports = {
     "dialect": "mysql",
     "operatorsAliases": false,
     "pool": {
-        "max": 5,
-        "min": 0,
-        "acquire": 30000,
-        "idle": 10000
+      "max": 5,
+      "min": 0,
+      "acquire": 30000,
+      "idle": 10000
     }
   }
 }

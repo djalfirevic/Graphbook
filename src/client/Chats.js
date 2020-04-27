@@ -34,7 +34,6 @@ export default class Chats extends Component {
     render() {
         const { user } = this.props;
         const { openChats } = this.state;
-        
         return (
             <div className="wrapper">
                 <ToastContainer/>

@@ -94,7 +94,6 @@ export default function resolver() {
                     query.include = [{model: User}];
                     query.where = { '$User.username$': username };
                 }
-              
                 return {
                     posts: Post.findAll(query)
                 };

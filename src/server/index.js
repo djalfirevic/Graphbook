@@ -14,6 +14,11 @@ import { Helmet } from 'react-helmet';
 import Cookies from 'cookies';
 import JWT from 'jsonwebtoken';
 import { createServer } from 'http';
+import Loadable, { Capture } from 'react-loadable';
+import { getBundles } from 'react-loadable/webpack';
+if(process.env.NODE_ENV !== 'development') {
+    var stats = require('../../dist/react-loadable.json');
+}
 const { JWT_SECRET } = process.env;
 const utils = {
     db,
@@ -64,9 +69,11 @@ for (let i = 0; i < serviceNames.length; i += 1) {
             services[name].applyMiddleware({ app });
             break;
         case 'subscriptions':
-            server.listen(8000, () => {
-                console.log('Listening on port 8000!');
-                services[name](server);
+            Loadable.preloadAll().then(() => {
+                server.listen(process.env.PORT? process.env.PORT:8000, () => {
+                    console.log('Listening on port '+(process.env.PORT? process.env.PORT:8000)+'!');
+                    services[name](server);
+                });
             });
             break;
         default:
@@ -86,15 +93,22 @@ app.get('*', async (req, res) => {
     }
     const client = ApolloClient(req, loggedIn);
     const context= {};
-    const App = (<Graphbook client={client} loggedIn={loggedIn} location={req.url} context={context}/>);
+    const modules = [];
+    const App = (<Capture report={moduleName => modules.push(moduleName)}><Graphbook client={client} loggedIn={loggedIn} location={req.url} context={context}/></Capture>);
     renderToStringWithData(App).then((content) => {
         if (context.url) {
             res.redirect(301, context.url);
         } else {
+            var bundles;
+            if(process.env.NODE_ENV !== 'development') {
+                bundles = getBundles(stats, Array.from(new Set(modules)));
+            } else {
+                bundles = [];
+            }
             const initialState = client.extract();
             const head = Helmet.renderStatic();
             res.status(200);
-            res.send(`<!doctype html>\n${template(content, head, initialState)}`);
+            res.send(`<!doctype html>\n${template(content, head, initialState, bundles)}`);
             res.end();
         }
     });
